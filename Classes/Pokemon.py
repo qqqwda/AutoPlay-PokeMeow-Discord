@@ -26,6 +26,7 @@ class Pokemon():
  
     def spawn(self):
         message = self.DRIVER.WaitNew(';p', f"{ self.DRIVER.USERNAME } found")
+        
         return ( message, 
                  sub( r'(.|\n)*?a wild .*!\n(.*) \((.|\n)*', r'\2', message.text ),  
                  sub( r'(.|\n)*?a wild (.*)!(.|\n)*', r'\2', message.text ) )

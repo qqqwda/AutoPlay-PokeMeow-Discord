@@ -38,7 +38,9 @@ class Fish():
             self.BAG.update_balls(self.message.text, False) # False because not earning Pokecoins
 
     def spawn(self, START_TIME):
+        
         message = self.DRIVER.WaitNew(';fish', f'{ self.DRIVER.USERNAME } cast')
+
         bak_txt = message.text
         while time() < START_TIME + self.TIMEOUT and bak_txt == message.text:
             sleep(0.1)

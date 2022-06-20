@@ -1,4 +1,5 @@
 from decimal import Decimal
+import re
 from sys import platform, stdout
 from time import sleep
 
@@ -27,12 +28,14 @@ class CustomDriver( webdriver.Firefox,
     # <input id="votingvoted" type="button" class="voting btn btn-orange btn-4x vote-button" value="Vote">
     # MODIFIER = Keys.COMMAND if platform == "win32" or platform == 'linux' else Keys.COMMAND
 
-    SEND_MSG_BAR_XPATH: str = "//div[@class='markup-eYLPri slateTextArea-27tjG0 fontSize16Padding-XoMpjI']"
+    SEND_MSG_BAR_XPATH: str = "//div[@class='markup-eYLPri editor-H2NA06 slateTextArea-27tjG0 fontSize16Padding-XoMpjI']"
     SEND_MSG_BAR = None
     LAST_MSG = None
     NBR_MAX_RECURSION: int = 4
 
-    MSG_XPATH: str = "//div[contains(@class,'message-2CShn3 cozyMessage-1DWF9U groupStart-3Mlgv1 wrapper-30-Nkg cozy-VmLDNB zalgo-26OfGz hasReply-2Cr4KE')]"
+    MSG_XPATH: str = "//div[contains(@class,'message-2CShn3 cozyMessage-1DWF9U groupStart-3Mlgv1 wrapper-30-Nkg cozy-VmLDNB zalgo-26OfGz')]"
+    MSG_E_XPATH: str = "//li[contains(@class,'messageListItem-ZZ7v6g')]"
+
     POKEMEOW_USERNAME: str = 'PokéMeow'
 
     def __init__(self, ARGUMENTS):
@@ -75,6 +78,11 @@ class CustomDriver( webdriver.Firefox,
 
     def DiscordLogin(self, CHANNEL: str):
         self.get(CHANNEL)
+        continue_in_browser = self.find_elements_by_class_name('contents-3ca1mk');
+        
+        if continue_in_browser:
+            continue_in_browser[1].click();
+        
         self.find_element_by_name("email").send_keys(self.MAIL)
         pwd = self.find_element_by_name("password")
         pwd.send_keys(self.PASSWD)
@@ -115,6 +123,13 @@ class CustomDriver( webdriver.Firefox,
 
         self.SEND_MSG_BAR.send_keys(Keys.RETURN)
 
+    
+    def CheckLastMessage(self):
+        elements = self.find_elements_by_xpath(self.MSG_E_XPATH)
+        return elements[-1]
+        
+
+
     def CheckLast(self,
                   contains: str = ''):
         msgList = self.FindMessages('find all messages')
@@ -130,15 +145,21 @@ class CustomDriver( webdriver.Firefox,
 
     def WaitNew(self, to_send: str, contains, # contains can be a str or a list of str
                       retry: int = NBR_MAX_RECURSION, message_orig_txt = None, number_of_sleep: Decimal = Decimal(4) ):
-
         if not message_orig_txt: message_orig_txt = self.LAST_MSG.text
+
+        
+
         # send le message
         self.SendMessage(to_send)
 
         # recupere une nouvelle fois le text du dernier embed
         new_message = self.CheckLast(contains)
+        sleep(0.5)
+        self.WaitChangesOnMessageCaptcha()
+
+        #self.WaitChangesOnMessageCaptcha()
         
-        # tant que les deux messages sont egaux et que retry n'est pas passé
+        # tant que les deux messages sont egaux et que retry n'est pas passé dofus
         while not new_message and number_of_sleep:
             sleep(0.1)
             number_of_sleep -= Decimal('0.1')
@@ -146,6 +167,7 @@ class CustomDriver( webdriver.Firefox,
 
         # si les deux embeds sont effectivement diffs
         if new_message and message_orig_txt != new_message.text: return new_message
+
 
         if retry :
             # sinon recur
@@ -178,6 +200,33 @@ class CustomDriver( webdriver.Firefox,
             self.attente(6, 'trying again this action')
             return self.WaitChangesOnMessage(to_send, message, retry -1)
         else: raise RecursionError('MAX RECURSION REACHED')
+
+    def WaitChangesOnMessageCaptcha(self):
+
+        lastmsg = self.CheckLastMessage()
+        print('lastmsg: '+lastmsg.text)
+        response = 'thank you'
+
+        if('captcha' not in lastmsg.text):
+            print('No captcha :)')
+            return True
+
+        while True:
+            print("RESUELVE CAPTCHA!!!!")
+            lastmsg = self.CheckLastMessage()
+            sleep(1)
+            if response in lastmsg.text:
+                print("resuelto :)")
+                break
+
+        return True;
+            
+
+
+
+
+        
+
 
     def Vote(self):
         print('Going to vote for you.')
